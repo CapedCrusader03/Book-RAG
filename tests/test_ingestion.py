@@ -113,3 +113,87 @@ def test_parse_pdf_empty_page_warning(capsys):
         captured = capsys.readouterr()
         assert "Warning: Page 2 of PDF 'empty_pages.pdf' yielded no extractable text." in captured.out
 
+def test_chunk_text_validation_errors():
+    """Verify ValueError is raised for invalid chunk parameter inputs."""
+    from src.ingestion.chunker import chunk_text
+    
+    with pytest.raises(ValueError, match="chunk_size must be greater than 0"):
+        chunk_text("dummy", chunk_size=0, chunk_overlap=10)
+        
+    with pytest.raises(ValueError, match="chunk_overlap must be 0 or greater"):
+        chunk_text("dummy", chunk_size=10, chunk_overlap=-1)
+        
+    with pytest.raises(ValueError, match="chunk_overlap must be strictly less than chunk_size"):
+        chunk_text("dummy", chunk_size=100, chunk_overlap=100)
+        
+    with pytest.raises(ValueError, match="chunk_overlap must be strictly less than chunk_size"):
+        chunk_text("dummy", chunk_size=100, chunk_overlap=120)
+
+def test_chunk_text_success_delimiters():
+    """Verify basic text segmentation using paragraph, newline, and space delimiters."""
+    from src.ingestion.chunker import chunk_text
+    
+    text = "Paragraph 1 line A.\nParagraph 1 line B.\n\nParagraph 2 content."
+    # With chunk_size=30, chunk_overlap=10:
+    # "Paragraph 1 line A.\nParagraph 1 line B." is 40 chars -> exceeds 30.
+    # Split by \n: "Paragraph 1 line A.\n" (20 chars) and "Paragraph 1 line B." (19 chars).
+    # "Paragraph 1 line A.\n" and "Paragraph 1 line B." cannot be merged into one chunk because length would be 39 > 30.
+    # So chunk 1 = "Paragraph 1 line A.\n" (len 20)
+    # Since chunk_overlap=10, we try to overlap. But individual segments are 20 and 19. No single segment is <= 10.
+    # So overlap is 0. Next chunk starts at "Paragraph 1 line B.\n\n".
+    # Let's test chunk_text with simple parameters to verify standard splits.
+    chunks = chunk_text(text, chunk_size=45, chunk_overlap=15)
+    assert len(chunks) > 0
+    # Reconstruct the original text (minus paragraph boundaries maybe, but let's assert no character loss)
+    # Check offsets
+    for chunk in chunks:
+        chunk_txt = chunk["text"]
+        start = chunk["metadata"]["start_char"]
+        end = chunk["metadata"]["end_char"]
+        assert text[start:end] == chunk_txt
+        assert len(chunk_txt) <= 45
+
+def test_chunk_text_sliding_window_characters():
+    """Verify that adjacent chunks share exactly the expected overlap when splitting by characters."""
+    from src.ingestion.chunker import chunk_text
+    
+    # 2,000 character test block of 'A' (no delimiters match, forces character splitting)
+    text = "A" * 2000
+    chunk_size = 500
+    chunk_overlap = 100
+    
+    chunks = chunk_text(text, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    
+    # Verify:
+    # 1. We have exactly 5 chunks:
+    #    Chunk 0: 0 to 500
+    #    Chunk 1: 400 to 900
+    #    Chunk 2: 800 to 1300
+    #    Chunk 3: 1200 to 1700
+    #    Chunk 4: 1600 to 2000
+    assert len(chunks) == 5
+    
+    for i, chunk in enumerate(chunks):
+        assert len(chunk["text"]) <= chunk_size
+        assert chunk["metadata"]["chunk_index"] == i
+        
+        expected_start = i * (chunk_size - chunk_overlap)
+        expected_end = expected_start + chunk_size if i < 4 else 2000
+        
+        assert chunk["metadata"]["start_char"] == expected_start
+        assert chunk["metadata"]["end_char"] == expected_end
+        assert chunk["text"] == text[expected_start:expected_end]
+        
+    # Verify exact overlap at boundaries
+    for i in range(len(chunks) - 1):
+        curr_chunk_end = chunks[i]["metadata"]["end_char"]
+        next_chunk_start = chunks[i+1]["metadata"]["start_char"]
+        
+        # Intersection between Chunk i and Chunk i+1
+        # Chunk i ends at curr_chunk_end (500)
+        # Chunk i+1 starts at next_chunk_start (400)
+        # Overlap = curr_chunk_end - next_chunk_start
+        overlap_len = curr_chunk_end - next_chunk_start
+        assert overlap_len == chunk_overlap
+
+
