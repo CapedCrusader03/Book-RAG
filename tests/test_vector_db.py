@@ -94,3 +94,81 @@ def test_add_documents():
                 shutil.rmtree(temp_dir)
             except PermissionError:
                 pass
+
+def test_similarity_search_success():
+    """Verify that similarity_search retrieves the most semantically relevant fact block."""
+    import tempfile
+    import shutil
+    import os
+    from src.services.vector_db import initialize_vector_store, add_documents, similarity_search
+    
+    temp_dir = tempfile.mkdtemp()
+    try:
+        initialize_vector_store(temp_dir)
+        
+        # Ingest standard facts along with a distinct target fact
+        chunks = [
+            {
+                "text": "The solar system contains eight planets orbiting the sun.",
+                "metadata": {"book_title": "astronomy", "chunk_index": 0}
+            },
+            {
+                "text": "The secret cake recipe requires three cups of saffron and two spoons of cardamoms.",
+                "metadata": {"book_title": "cooking", "chunk_index": 0}
+            },
+            {
+                "text": "Quantum computing utilizes superposition and entanglement to process information.",
+                "metadata": {"book_title": "physics", "chunk_index": 0}
+            }
+        ]
+        add_documents(chunks)
+        
+        # Query for secret recipe ingredients
+        results = similarity_search("ingredients for secret recipe", k=1)
+        
+        assert len(results) == 1
+        assert "saffron" in results[0]["text"]
+        assert results[0]["metadata"]["book_title"] == "cooking"
+    finally:
+        if os.path.exists(temp_dir):
+            try:
+                shutil.rmtree(temp_dir)
+            except PermissionError:
+                pass
+
+def test_similarity_search_metadata_filter():
+    """Verify that metadata filtering restricts results to specific book titles."""
+    import tempfile
+    import shutil
+    import os
+    from src.services.vector_db import initialize_vector_store, add_documents, similarity_search
+    
+    temp_dir = tempfile.mkdtemp()
+    try:
+        initialize_vector_store(temp_dir)
+        
+        # Ingest identical text contents but with different book metadata
+        chunks = [
+            {
+                "text": "The code word is BANANA.",
+                "metadata": {"book_title": "Book_A", "chunk_index": 0}
+            },
+            {
+                "text": "The code word is BANANA.",
+                "metadata": {"book_title": "Book_B", "chunk_index": 0}
+            }
+        ]
+        add_documents(chunks)
+        
+        # Search with strict metadata filter for Book_A
+        results = similarity_search("what is the code word?", k=2, metadata_filter={"book_title": "Book_A"})
+        
+        # Even though k=2 and two identical matches exist, only Book_A should be returned
+        assert len(results) == 1
+        assert results[0]["metadata"]["book_title"] == "Book_A"
+    finally:
+        if os.path.exists(temp_dir):
+            try:
+                shutil.rmtree(temp_dir)
+            except PermissionError:
+                pass

@@ -105,3 +105,48 @@ def add_documents(chunks: list[dict]) -> None:
         embeddings=embeddings,
         metadatas=metadatas
     )
+
+def similarity_search(query: str, k: int, metadata_filter: dict = None) -> list[dict]:
+    """Searches the vector store for segments semantically similar to the query.
+    
+    Args:
+        query: The natural language search query.
+        k: The number of top results to return.
+        metadata_filter: Optional dictionary of metadata key-value pairs
+                         for strict filtering (e.g. {"book_title": "Book_A"}).
+                         
+    Returns:
+        A list of dicts, each representing a match containing:
+        - "text": The page text segment.
+        - "metadata": The metadata attributes dictionary.
+    """
+    if not query or k <= 0:
+        return []
+        
+    client = get_vector_store()
+    collection = client.get_or_create_collection(name="book_chunks")
+    
+    # Generate query embedding
+    query_vector = get_embedding(query)
+    
+    # Query collection
+    results = collection.query(
+        query_embeddings=[query_vector],
+        n_results=k,
+        where=metadata_filter
+    )
+    
+    documents = results.get("documents", [[]])
+    metadatas = results.get("metadatas", [[]])
+    
+    if not documents or not documents[0]:
+        return []
+        
+    formatted_results = []
+    for doc, meta in zip(documents[0], metadatas[0]):
+        formatted_results.append({
+            "text": doc,
+            "metadata": meta
+        })
+        
+    return formatted_results
