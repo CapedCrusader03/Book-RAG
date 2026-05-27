@@ -45,3 +45,52 @@ def test_initialize_vector_store():
             except PermissionError:
                 # SQLite locks the file on Windows until process exit, ignore
                 pass
+
+def test_add_documents():
+    """Verify that add_documents correctly embeds and ingests document chunks with idempotency."""
+    import tempfile
+    import shutil
+    import os
+    from src.services.vector_db import initialize_vector_store, add_documents
+    
+    temp_dir = tempfile.mkdtemp()
+    
+    try:
+        # Initialize temp DB
+        client = initialize_vector_store(temp_dir)
+        collection = client.get_or_create_collection("book_chunks")
+        
+        # Initial count
+        assert collection.count() == 0
+        
+        # Ingest 3 distinct mock chunk items
+        mock_chunks = [
+            {
+                "text": "This is chunk number one representing general knowledge.",
+                "metadata": {"book_title": "test_book", "chunk_index": 0, "source": "dummy.txt"}
+            },
+            {
+                "text": "This is chunk number two detailing technical architectural specifications.",
+                "metadata": {"book_title": "test_book", "chunk_index": 1, "source": "dummy.txt"}
+            },
+            {
+                "text": "This is chunk number three listing testing verification procedures.",
+                "metadata": {"book_title": "test_book", "chunk_index": 2, "source": "dummy.txt"}
+            }
+        ]
+        
+        add_documents(mock_chunks)
+        
+        # Verify collection count increased by exactly 3
+        assert collection.count() == 3
+        
+        # Verify idempotency: re-adding the same chunks does not duplicate them
+        add_documents(mock_chunks)
+        assert collection.count() == 3
+        
+    finally:
+        if os.path.exists(temp_dir):
+            try:
+                shutil.rmtree(temp_dir)
+            except PermissionError:
+                pass

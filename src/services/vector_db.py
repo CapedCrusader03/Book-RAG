@@ -61,3 +61,47 @@ def get_vector_store() -> "chromadb.PersistentClient":
         settings = load_settings()
         initialize_vector_store(settings.persist_directory)
     return _client
+
+def add_documents(chunks: list[dict]) -> None:
+    """Ingests a list of document chunks, generates embeddings, and persists them to ChromaDB.
+    
+    This operation is designed to be idempotent: chunk IDs are generated deterministically
+    based on the book title and chunk index, allowing safe re-runs without duplication.
+    
+    Args:
+        chunks: A list of dictionaries, each containing:
+                - "text": The content string of the chunk.
+                - "metadata": A dictionary containing chunk metadata attributes
+                              (e.g., source, book_title, chunk_index, start_char, end_char).
+    """
+    if not chunks:
+        return
+        
+    client = get_vector_store()
+    collection = client.get_or_create_collection(name="book_chunks")
+    
+    ids = []
+    documents = []
+    embeddings = []
+    metadatas = []
+    
+    for i, chunk in enumerate(chunks):
+        text = chunk.get("text", "")
+        metadata = chunk.get("metadata", {})
+        
+        # Build deterministic ID for idempotency: book_title + chunk_index
+        book_title = metadata.get("book_title", "unknown")
+        chunk_idx = metadata.get("chunk_index", i)
+        chunk_id = f"{book_title}_chunk_{chunk_idx}"
+        
+        ids.append(chunk_id)
+        documents.append(text)
+        metadatas.append(metadata)
+        embeddings.append(get_embedding(text))
+        
+    collection.add(
+        ids=ids,
+        documents=documents,
+        embeddings=embeddings,
+        metadatas=metadatas
+    )
