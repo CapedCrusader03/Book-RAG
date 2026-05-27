@@ -35,3 +35,29 @@ def get_embedding(text: str) -> list[float]:
     # encode returns a numpy array, convert it to standard python list of floats
     embedding = model.encode(text, convert_to_numpy=True)
     return embedding.tolist()
+
+_client = None
+
+def initialize_vector_store(persist_directory: str):
+    """Initializes the local ChromaDB persistent client pointing to the specified directory.
+    
+    Args:
+        persist_directory: Path to the persistent database storage on disk.
+        
+    Returns:
+        The initialized chromadb.PersistentClient instance.
+    """
+    import chromadb
+    global _client
+    os.makedirs(persist_directory, exist_ok=True)
+    _client = chromadb.PersistentClient(path=persist_directory)
+    return _client
+
+def get_vector_store() -> "chromadb.PersistentClient":
+    """Returns the initialized vector store client, loading settings from config if not initialized."""
+    global _client
+    if _client is None:
+        from src.config import load_settings
+        settings = load_settings()
+        initialize_vector_store(settings.persist_directory)
+    return _client
