@@ -1,5 +1,5 @@
 import os
-from typing import Literal
+from typing import Literal, Optional
 import yaml
 from pydantic import BaseModel, Field, ValidationError
 
@@ -11,6 +11,7 @@ class Settings(BaseModel):
     llm_provider: Literal["ollama", "openai"] = Field(..., description="Inference provider")
     llm_model: str = Field(..., description="LLM model identifier")
     llm_temperature: float = Field(0.0, description="Temperature for inference generation", ge=0.0, le=1.0)
+    openai_base_url: Optional[str] = Field(None, description="Optional custom base URL for OpenAI-compatible APIs like LM Studio")
 
 def load_settings(config_path: str = None) -> Settings:
     """Loads, parses, and validates configurations from a YAML file.

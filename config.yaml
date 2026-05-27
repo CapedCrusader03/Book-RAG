@@ -10,5 +10,9 @@ embedding_model_name: "sentence-transformers/all-MiniLM-L6-v2"
 
 # LLM Generation Settings
 llm_provider: "ollama"  # Options: "ollama", "openai"
-llm_model: "llama3"     # Model name (e.g., "llama3" for Ollama, "gpt-4o-mini" for OpenAI)
+llm_model: "llama3"     # Model name (e.g., "llama3" for Ollama, "gpt-4o-mini" for OpenAI, or local model path in LM Studio)
 llm_temperature: 0.0
+
+# Optional custom base URL for OpenAI-compatible local servers (like LM Studio)
+# To use LM Studio: set llm_provider to "openai", uncomment the base URL below, and set llm_model
+# openai_base_url: "http://localhost:1234/v1"

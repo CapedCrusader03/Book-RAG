@@ -18,7 +18,11 @@ def generate_answer(prompt: str) -> str:
     settings = load_settings()
     
     if settings.llm_provider == "openai":
-        client = OpenAI()
+        if settings.openai_base_url:
+            # For local compatible endpoints (like LM Studio), use custom base_url and bypass api_key checks
+            client = OpenAI(base_url=settings.openai_base_url, api_key="lm-studio")
+        else:
+            client = OpenAI()
         response = client.chat.completions.create(
             model=settings.llm_model,
             messages=[{"role": "user", "content": prompt}],
