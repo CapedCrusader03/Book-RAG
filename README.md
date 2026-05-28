@@ -8,13 +8,13 @@ The system features a decoupled architecture with a **FastAPI backend** managing
 
 ## 🚀 Key Features
 
-* **⚡ Real-time Ingestion**: Upload, parse, and index `.pdf` and `.txt` files directly from the UI.
-* **📂 Decoupled Multi-Book Filtering**: Perform semantic search scopes globally or filter search queries to a specific book.
-* **🛡️ Hallucination Safeguards**: Restrictive prompt construction directives ensure the LLM answers *only* when the information exists in the retrieved book passages.
-* **💎 Premium React Interface**: Beautifully designed UI utilizing dark mode, glassmorphism, micro-animations, and responsive layouts.
-* **🔁 Idempotent Data Pipeline**: Deterministic document chunk ID generation prevents duplicate database records on re-ingestion.
-* **🔌 Flexible LLM Support**: Dynamically route queries to local open-source models (**Ollama** or **LM Studio** / custom OpenAI-compatible endpoints) or cloud services (**OpenAI API**).
-* **🔬 Local Persistence**: Data is written directly to disk using a local **ChromaDB SQLite** backend.
+* **Real-time Ingestion**: Upload, parse, and index `.pdf` and `.txt` files directly from the UI.
+* **Decoupled Multi-Book Filtering**: Perform semantic search scopes globally or filter search queries to a specific book.
+* **Hallucination Safeguards**: Restrictive prompt construction directives ensure the LLM answers *only* when the information exists in the retrieved book passages.
+* **React Interface**: Beautifully designed UI utilizing dark mode, glassmorphism, micro-animations, and responsive layouts.
+* **Idempotent Data Pipeline**: Deterministic document chunk ID generation prevents duplicate database records on re-ingestion.
+* **Flexible LLM Support**: Dynamically route queries to local open-source models (**Ollama** or **LM Studio** / custom OpenAI-compatible endpoints) or cloud services (**OpenAI API**).
+* **Local Persistence**: Data is written directly to disk using a local **ChromaDB SQLite** backend.
 
 ---
 
@@ -109,11 +109,11 @@ The application is split into two asynchronous lifecycle stages: the **Ingestion
 
 ### Component Design & Responsibilities
 
-1. **Document Parsers ([parser.py](file:///d:/Projects/Book-RAG/src/ingestion/parser.py))**: Decoupled handlers that ingest raw file paths, detect file extensions, extract characters cleanly, and return a standardized metadata-rich schema.
-2. **Chunking Engine ([chunker.py](file:///d:/Projects/Book-RAG/src/ingestion/chunker.py))**: Recursively partitions large texts based on paragraph boundaries, newlines, and spaces. Enforces overlap boundaries to avoid losing context.
-3. **Vector Service ([vector_db.py](file:///d:/Projects/Book-RAG/src/services/vector_db.py))**: Directs the interface to ChromaDB. Builds deterministic chunk IDs to prevent duplicate record insertion and executes semantic similarity lookups.
-4. **LLM Bindings ([llm.py](file:///d:/Projects/Book-RAG/src/services/llm.py))**: Decouples API invocations for Ollama and OpenAI-compatible local APIs (LM Studio) using uniform settings.
-5. **RAG Orchestrator ([rag_engine.py](file:///d:/Projects/Book-RAG/src/services/rag_engine.py))**: Glues retrieval and generation components together. Collects local document contexts, formats security prompts, and executes the synthesis request.
+1. **Document Parsers (parser.py)**: Decoupled handlers that ingest raw file paths, detect file extensions, extract characters cleanly, and return a standardized metadata-rich schema.
+2. **Chunking Engine (chunker.py)**: Recursively partitions large texts based on paragraph boundaries, newlines, and spaces. Enforces overlap boundaries to avoid losing context.
+3. **Vector Service (vector_db.py)**: Directs the interface to ChromaDB. Builds deterministic chunk IDs to prevent duplicate record insertion and executes semantic similarity lookups.
+4. **LLM Bindings (llm.py)**: Decouples API invocations for Ollama and OpenAI-compatible local APIs (LM Studio) using uniform settings.
+5. **RAG Orchestrator (rag_engine.py)**: Glues retrieval and generation components together. Collects local document contexts, formats security prompts, and executes the synthesis request.
 
 ---
 
