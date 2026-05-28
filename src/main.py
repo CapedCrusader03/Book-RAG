@@ -2,6 +2,10 @@ import argparse
 import os
 import sys
 from typing import Optional
+
+# Add project root to sys.path to allow direct execution of this script
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -145,4 +149,4 @@ if __name__ == "__main__":
     else:
         # Run FastAPI Server
         print("Starting RAG API Server...")
-        uvicorn.run("src.main.py:app", host="127.0.0.1", port=8000, reload=True)
+        uvicorn.run("src.main:app", host="127.0.0.1", port=8000, reload=True)
